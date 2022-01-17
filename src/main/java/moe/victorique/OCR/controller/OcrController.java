@@ -6,6 +6,8 @@ import moe.victorique.OCR.service.IOcrService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +23,8 @@ import javax.servlet.http.HttpServletResponse;
 @RestController
 @RequestMapping("/ocr")
 public class OcrController {
+
+  Logger logger = LoggerFactory.getLogger(OcrController.class);
 
   private final IOcrService ocrService;
 
@@ -39,6 +43,7 @@ public class OcrController {
     String resp = "";
     try {
       resp = this.ocrService.getText(bytes);
+      logger.info("Image text recognised as: " + resp);
     } catch (Exception e) {
       objectNode.put("error", e.getMessage());
       response.sendError(HttpServletResponse.SC_BAD_REQUEST);
