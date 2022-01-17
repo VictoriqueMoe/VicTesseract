@@ -15,6 +15,9 @@
 	<description>Detect text in images with OCR</description>
 	<properties>
 		<java.version>11</java.version>
+		<properties>
+		</properties>
+
 	</properties>
 	<dependencies>
 		<dependency>
@@ -40,6 +43,13 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
