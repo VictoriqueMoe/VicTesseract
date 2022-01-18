@@ -5,20 +5,13 @@ import net.sourceforge.tess4j.util.LoadLibs;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 @Configuration
 public class Beans {
-
-  @Autowired
-  ResourceLoader resourceLoader;
 
   @Bean
   public ObjectMapper objectMapper() {
@@ -26,7 +19,7 @@ public class Beans {
   }
 
   @Bean
-  public Tesseract tesseract() throws IOException, URISyntaxException {
+  public Tesseract tesseract() {
     Tesseract tesseract = new Tesseract();
     File tessDataFolder = LoadLibs.extractTessResources("tessdata");
     tesseract.setDatapath(tessDataFolder.getAbsolutePath());
@@ -35,4 +28,5 @@ public class Beans {
     tesseract.setOcrEngineMode(1);
     return tesseract;
   }
+
 }
