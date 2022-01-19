@@ -13,6 +13,9 @@ import moe.victorique.OCR.service.IOcrService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,24 +27,25 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/")
-public class OcrController {
+public class OcrController extends AbstractController {
 
   Logger logger = LoggerFactory.getLogger(OcrController.class);
 
   private final IOcrService ocrService;
 
-  private final ObjectMapper mapper;
-
   @Autowired
   public OcrController(IOcrService ocrService, ObjectMapper mapper) {
+    super(mapper);
     this.ocrService = ocrService;
-    this.mapper = mapper;
   }
 
   @GetMapping
@@ -67,14 +71,21 @@ public class OcrController {
   public ObjectNode handleFileUpload(HttpServletResponse response, @RequestPart("file") MultipartFile file) throws IOException {
     byte[] bytes = file.getBytes();
     ObjectNode objectNode = mapper.createObjectNode();
+    try (InputStream is = new ByteArrayInputStream(bytes); BufferedInputStream bis = new BufferedInputStream(is);) {
+      final Tika tika = new Tika();
+      Metadata metadata = new Metadata();
+      metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
+      org.apache.tika.mime.MediaType mediaType = tika.getDetector().detect(bis, metadata);
+      if (!mediaType.getType().equals("image")) {
+        return this.doError("File must be an image", response);
+      }
+    }
     String resp = "";
     try {
       resp = this.ocrService.getText(bytes);
       logger.info("Image text recognised as: " + resp);
     } catch (Exception e) {
-      objectNode.put("error", e.getMessage());
-      response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-      return objectNode;
+      return this.doError(e.getMessage(), response);
     }
 
     objectNode.put("result", resp);
