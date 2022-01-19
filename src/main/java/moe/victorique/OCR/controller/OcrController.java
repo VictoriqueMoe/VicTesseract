@@ -8,12 +8,13 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import moe.victorique.OCR.service.IOcrService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.tika.Tika;
+import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.slf4j.Logger;
@@ -35,17 +36,19 @@ import java.io.InputStream;
 import javax.servlet.http.HttpServletResponse;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/ocr")
+@Tag(name = "OCR", description = "Api's to extract text from images")
 public class OcrController extends AbstractController {
 
-  Logger logger = LoggerFactory.getLogger(OcrController.class);
-
+  private final Logger logger = LoggerFactory.getLogger(OcrController.class);
+  private final Detector detector;
   private final IOcrService ocrService;
 
   @Autowired
-  public OcrController(IOcrService ocrService, ObjectMapper mapper) {
+  public OcrController(IOcrService ocrService, ObjectMapper mapper, Detector detector) {
     super(mapper);
     this.ocrService = ocrService;
+    this.detector = detector;
   }
 
   @GetMapping
@@ -65,6 +68,15 @@ public class OcrController extends AbstractController {
                   @ExampleObject("{\"result\":\"Some text\"}")
               }
           )
+      }),
+      @ApiResponse(responseCode = "400", description = "Bad Request", content = {
+          @Content(
+              mediaType = MediaType.APPLICATION_JSON_VALUE,
+              array = @ArraySchema(schema = @Schema(implementation = String.class)),
+              examples = {
+                  @ExampleObject("{\"error\":\"error description\"}")
+              }
+          )
       })
   })
   @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -72,10 +84,9 @@ public class OcrController extends AbstractController {
     byte[] bytes = file.getBytes();
     ObjectNode objectNode = mapper.createObjectNode();
     try (InputStream is = new ByteArrayInputStream(bytes); BufferedInputStream bis = new BufferedInputStream(is);) {
-      final Tika tika = new Tika();
       Metadata metadata = new Metadata();
       metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
-      org.apache.tika.mime.MediaType mediaType = tika.getDetector().detect(bis, metadata);
+      org.apache.tika.mime.MediaType mediaType = this.detector.detect(bis, metadata);
       if (!mediaType.getType().equals("image")) {
         return this.doError("File must be an image", response);
       }
