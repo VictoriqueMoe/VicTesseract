@@ -83,7 +83,7 @@ public class OcrController extends AbstractController {
         return this.doError("File must be an image", response);
       }
     }
-    String resp = "";
+    String resp;
     try {
       resp = this.ocrService.getText(bytes);
       logger.info("Image text recognised as: " + resp);
